@@ -27,18 +27,19 @@
       font-weight: bold;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.js" integrity="sha512-y7izOCWTqpz8t9UOs2gdo+ikf+Kpejwdb5Y8cIpUxE4ifxtwa95nr8mG9KVxdCFKyFgtYxZ1W+MF1ZzrfG6eBA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
   <h1>Dice Game Validator</h1>
 
-  <label for="inputhash">Server secret:</label>
+  <label for="inputhash">Server seed:</label>
   <input type="text" id="inputhash" placeholder="e.g. 6472d8dd24e95c59..." />
 
-  <label for="clientsecret">Client Secret:</label>
+  <label for="clientsecret">Client Seed:</label>
   <input type="text" id="clientsecret" placeholder="e.g. ac1c55d73f8bf994..." />
 
   <label for="nonce">Nonce:</label>
-  <input type="text" id="nonce" placeholder="e.g. b4a374555f59c07f..." />
+  <input type="text" id="nonce" placeholder="e.g. 14" />
 
   <button id="generateBtn">Generate Result</button>
   <label for="result">Result:</label>
@@ -72,21 +73,6 @@
     }
 
     /**
-     * Append the input byte arrays together into a single byte array.
-     *
-     * @param {...Uint8Array} inputs - The input byte arrays to append.
-     * @returns {Uint8Array} A single byte array containing the concatenated input byte arrays.
-     */
-    function append(...inputs) {
-      const length = inputs.reduce((acc, input) => acc + input.length, 0);
-      const buffer = new Uint8Array(length);
-      for (const input of inputs) {
-        buffer.set(input, buffer.length - input.length);
-      }
-      return buffer;
-    }
-
-    /**
      * Generate a random number with AES-CTR.
      *
      * @param {Partial<Options>} [options=DEFAULTS] - Options for generating the random number.
@@ -97,15 +83,14 @@
     async function randomNumber(options = DEFAULTS) {
       const { inputs, blockCount } = { ...DEFAULTS, ...options };
 
-      // Hash each input individually.
-      const input = await Promise.all(inputs.map((input) => hash(input)));
-
-      // Hash the concatenated input hashes.
-      const { buffer } = await hash(append(...input));
+      const hash = (inputs.reduce((acc, input) => {
+        acc.update(input);
+        return acc;
+      }, sha3_384.create())).digest();
 
       // Split the hash into 32 bytes for the key and 16 bytes for the counter.
-      const keyBytes = new Uint8Array(buffer.slice(0, 32));
-      const counter = new Uint8Array(buffer.slice(32, 48));
+      const keyBytes = new Uint8Array(hash.slice(0, 32));
+      const counter = new Uint8Array(hash.slice(32, 48));
 
       const cryptoKey = await crypto.subtle.importKey(
         "raw",
@@ -227,8 +212,9 @@
 
       try {
         const inputHash = fromHexString(inputHashValue);
-        const nonce = fromHexString(nonceValue);
+        const nonce = new Uint8Array(new BigUint64Array([BigInt(nonceValue)]).buffer);
         const clientSecret = fromHexString(clientSecretValue);
+
         const result = await genGameResult(inputHash, clientSecret, nonce);
         resultEl.value = (result * 100).toFixed(2);
       } catch (error) {
