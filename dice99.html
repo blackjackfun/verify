@@ -45,6 +45,19 @@
   <input type="text" id="result" disabled/>
 
   <script>
+    const queries = new URLSearchParams(window.location.search);
+    const queryServerSeed = queries.get("s");
+    const queryClientSeed = queries.get("c");
+    const queryNonce = queries.get("n");
+    if(queryServerSeed) {
+      document.getElementById("inputhash").value = queryServerSeed;
+    }
+    if(queryClientSeed) {
+      document.getElementById("clientsecret").value = queryClientSeed;
+    }
+    if(queryNonce) {
+      document.getElementById("nonce").value = queryNonce;
+    }
     /**
      * @typedef {Object} Options
      * @property {Uint8Array[]} inputs - An array of input byte arrays.
