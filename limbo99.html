@@ -30,7 +30,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.js" integrity="sha512-y7izOCWTqpz8t9UOs2gdo+ikf+Kpejwdb5Y8cIpUxE4ifxtwa95nr8mG9KVxdCFKyFgtYxZ1W+MF1ZzrfG6eBA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
-  <h1>Blackjack.fun Dice99 Game Validator</h1>
+  <h1>Blackjack.fun Limbo99 Game Validator</h1>
 
   <label for="inputhash">Server seed:</label>
   <input type="text" id="inputhash" placeholder="e.g. 6472d8dd24e95c59..." />
@@ -152,6 +152,23 @@
       return encoder.encode(input);
     }
 
+    function calculateMultiplier(result) {
+      const RTP = 0.99;
+      const MIN = 0;
+      const MAX = 1;
+
+      if (result < MIN || result > MAX) {
+        throw new Error(`Prediction must be between ${MIN} and ${MAX} (inclusive)`);
+      }
+
+      const houseEdge = 1 - RTP;
+      const probability = (MAX - result) / (MAX - MIN);
+      const multiplier = (1 / probability) * (1 - houseEdge);
+
+      // Round to 4 decimal places for clarity, needs to support 4 decimals as examples from competitors
+      return parseFloat(multiplier.toFixed(2));
+    }
+
     /**
      * Generates game result based on game hash, client secret, and player nonce.
      *
@@ -160,12 +177,13 @@
      * @param {Uint8Array} player_nonce - The player nonce.
      * @returns {Promise<number>} The game result.
      */
-    const genGameResult = (
+    const genGameResult = async (
       game_hash,
       client_secret,
       player_nonce
-    ) => randomNumber({ inputs: [game_hash, client_secret, player_nonce] });
-
+    ) => {
+      return calculateMultiplier(await randomNumber({inputs: [game_hash, client_secret, player_nonce]}));
+    };
 
     /**
      * Parse a hex string into a Uint8Array.
@@ -216,7 +234,7 @@
         const clientSecret = fromHexString(clientSecretValue);
 
         const result = await genGameResult(inputHash, clientSecret, nonce);
-        resultEl.value = (result * 100).toFixed(2);
+        resultEl.value = result;
       } catch (error) {
         resultEl.value = "Error: " + error.message;
       }
