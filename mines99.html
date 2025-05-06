@@ -388,11 +388,10 @@
             try {
                 const serverSecret = fromHexString(serversecretValue);
                 const nonce = new Uint8Array(new BigUint64Array([BigInt(nonceValue)]).buffer);
-                const clientSecret = fromHexString(clientSecretValue);
 
                 const gridSize = 25;
 
-                const grid = await generateMineGrid(gridSize, +mineCount, serverSecret, clientSecret, nonce)
+                const grid = await generateMineGrid(gridSize, +mineCount, serverSecret, clientSecretValue, nonce)
 
                 renderGrid(grid, gridSize, opened_mines);
             } catch (error) {
